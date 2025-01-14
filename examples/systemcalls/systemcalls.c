@@ -15,8 +15,15 @@ bool do_system(const char *cmd)
  *  Call the system() function with the command set in the cmd
  *   and return a boolean true if the system() call completed with success
  *   or false() if it returned a failure
-*/
 
+*/ 
+    if (cmd == NULL) {
+        return false;
+    }
+    int retSystem = system(cmd);
+    if (retSystem == -1 || retSystem == 127) {
+        return false;
+    }
     return true;
 }
 
@@ -44,13 +51,15 @@ bool do_exec(int count, ...)
     {
         command[i] = va_arg(args, char *);
     }
-    command[count] = NULL;
-    // this line is to avoid a compile warning before your implementation is complete
-    // and may be removed
-    command[count] = command[count];
+
+    if (command[0][0] != '/') {
+        return false;
+    }
+    va_end(args);
 
 /*
  * TODO:
+    
  *   Execute a system command by calling fork, execv(),
  *   and wait instead of system (see LSP page 161).
  *   Use the command[0] as the full path to the command to execute
@@ -58,9 +67,24 @@ bool do_exec(int count, ...)
  *   as second argument to the execv() command.
  *
 */
-
-    va_end(args);
-
+    pid_t pid;
+    pid = fork();
+    if (pid == 0) {
+        execv(command[0], command);
+        perror("execv");
+    }
+    else {
+        int status;
+        if (wait(&status) == -1) {
+            perror("wait");
+            return false;
+        }
+        if (WIFEXITED(status)) {
+            return WEXITSTATUS(status) == 0;
+        } else {
+            return false;
+        }
+    }
     return true;
 }
 
@@ -80,9 +104,6 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
         command[i] = va_arg(args, char *);
     }
     command[count] = NULL;
-    // this line is to avoid a compile warning before your implementation is complete
-    // and may be removed
-    command[count] = command[count];
 
 
 /*
@@ -92,6 +113,42 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *   The rest of the behaviour is same as do_exec()
  *
 */
+    pid_t kidpid;
+    int fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0644);
+    if (fd < 0) {
+        perror("open");
+        abort();
+    }
+    switch (kidpid = fork()) {
+        case -1:
+            perror("fork do_exec_redirect");
+            abort();
+            break;
+        case 0:
+            if (dup2(fd, 1) < 0) {
+                perror("dup2");
+                abort();
+            }
+            close(fd);
+            execv(command[0], command);
+            perror("execvp");
+            abort();
+            break;
+        default:
+            close(fd);
+            break;
+    }
+
+    int status;
+    if (wait(&status) == -1) {
+        perror("wait");
+        return false;
+    }
+    if (WIFEXITED(status)) {
+        return WEXITSTATUS(status) == 0;
+    } else {
+        return false;
+    }
 
     va_end(args);
 
