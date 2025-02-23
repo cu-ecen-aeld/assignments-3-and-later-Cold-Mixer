@@ -12,15 +12,9 @@
 *   3) Use unity assertion TEST_ASSERT_EQUAL_STRING_MESSAGE the two strings are equal.  See
 *       the [unity assertion reference](https://github.com/ThrowTheSwitch/Unity/blob/master/docs/UnityAssertionsReference.md)
 */
-void test_validate_my_username()
+void test_validate_username()
 {
-    /**
-     * TODO: Replace the line below with your code here as described above to verify your /conf/username.txt 
-     * config file and my_username() functions are setup properly
-     */
-    const char *MyUsername = my_username();
-    char *InputUser = malloc_username_from_conf_file();
-
-    TEST_ASSERT_EQUAL_STRING_MESSAGE(MyUsername,InputUser, "Not equal");
-    free(InputUser);
+    const char *username_from_function = my_username();
+    const char *username_from_conf = malloc_username_from_conf_file();
+    TEST_ASSERT_EQUAL_STRING_MESSAGE(username_from_conf, username_from_function, "Username validation failed!");
 }

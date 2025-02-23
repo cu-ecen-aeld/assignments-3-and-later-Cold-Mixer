@@ -1,36 +1,50 @@
-#include <fcntl.h>
-#include <limits.h> //To get PATH_MAX
-#include <string.h>
-#include <syslog.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <syslog.h>
+#include <string.h>
 
-
-int main(int argc,char *argv[]) {
-    int fd;
-    //open log
+int main(int argc, char *argv[]) {
+    // Open syslog with LOG_USER facility
     openlog("writer", LOG_PID, LOG_USER);
+
+    // Check if the correct number of arguments are provided
     if (argc != 3) {
-        syslog(LOG_ERR, "This is a log message: %s", "Missing argument");
+        syslog(LOG_ERR, "Invalid number of arguments: %d (expected 2)", argc - 1);
+        fprintf(stderr, "Usage: %s <file> <string>\n", argv[0]);
         closelog();
-        exit (EXIT_FAILURE);
+        return 1;
     }
-    const char *path = argv[1];
-    const char *text = argv[2];
-    fd = creat(path, 0644);
-    if (fd == -1) {
-        syslog(LOG_ERR, "This is a log message: %s", "Unable to create file!");
-        closelog(); 
-        exit (EXIT_FAILURE);
-        //error handling
+
+    // Extract arguments
+    const char *file_path = argv[1];
+    const char *text_to_write = argv[2];
+
+    // Log the writing operation with LOG_DEBUG level
+    syslog(LOG_DEBUG, "Writing %s to %s", text_to_write, file_path);
+
+    // Open the file for writing
+    FILE *file = fopen(file_path, "w");
+    if (file == NULL) {
+        syslog(LOG_ERR, "Failed to open file: %s", file_path);
+        perror("Error");
+        closelog();
+        return 1;
     }
-    int nr = write (fd, text, strlen (text));
-    syslog(LOG_ERR, "Writing %s to %s", text,path);
-    if (nr == -1) {
-        syslog(LOG_ERR, "This is a log message: %s", "Unable to write to file!");
-        //error handling
+
+    // Write the text to the file
+    if (fprintf(file, "%s\n", text_to_write) < 0) {
+        syslog(LOG_ERR, "Failed to write to file: %s", file_path);
+        perror("Error");
+        fclose(file);
+        closelog();
+        return 1;
     }
-    closelog(); // Close the log
+
+    // Close the file
+    fclose(file);
+
+    // Close syslog
+    closelog();
+
     return 0;
 }

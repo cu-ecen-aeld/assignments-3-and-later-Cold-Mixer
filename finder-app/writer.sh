@@ -1,23 +1,21 @@
 #!/bin/bash
 
+# Check if both arguments are provided
 if [ $# -ne 2 ]; then
-    echo "one of two arguments was not provided"
+    echo "Error: Two arguments required"
+    echo "Usage: $0 <writefile> <writestr>"
     exit 1
 fi
 
 writefile=$1
 writestr=$2
 
-dir=$(dirname "$writefile")
-if [ ! -d "$dir" ]; then
-    mkdir -p "$dir" || {
-        echo "Could not create file $writefile"
-        exit 1
-    }
-fi 
+# Create directory path if it doesn't exist
+dir_path=$(dirname "$writefile")
+mkdir -p "$dir_path"
 
-echo "$writestr" > "$writefile" || {
-    echo "Could not create file $writefile"
+# Write string to file
+if ! echo "$writestr" > "$writefile"; then
+    echo "Error: Could not create file $writefile"
     exit 1
-}
-
+fi
